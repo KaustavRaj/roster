@@ -4,6 +4,7 @@ import { Layout, Row, Col, Button, Space, message } from "antd";
 import { SyncOutlined, CheckCircleTwoTone } from "@ant-design/icons";
 import { PropagateLoader } from "react-spinners";
 import { DragDropContext } from "react-beautiful-dnd";
+import { useHistory } from "react-router-dom";
 import axios from "axios";
 import { TasksList, AddMembers } from "../components";
 import Context from "../store/context";
@@ -21,8 +22,8 @@ export default function Dashboard(props) {
   const [dashboardData, setDashboardData] = useState({});
   const [addMembersVisible, setAddMembersVisible] = useState(false);
   const [stages, setStages] = useState([]);
-  const [members, addMembers] = useState([]);
-  const { globalState, globalDispatch } = useContext(Context);
+  const { globalState } = useContext(Context);
+  const history = useHistory();
 
   console.log("STAGE DASHBOARD", stages);
 
@@ -33,13 +34,17 @@ export default function Dashboard(props) {
           const { success, error, data } = response.data;
           if (success) {
             const { stages, ...rest } = data;
+            console.log("--------------DASHBOARD DATA--------------");
+            console.log(data);
             setDashboardData(rest);
             setStages(stages);
           } else {
+            history.push("/404");
             console.error(error);
           }
         },
         (err) => {
+          history.push("/404");
           console.error(`GET /${board_id}/dashboard/`, err);
         }
       );
@@ -69,8 +74,30 @@ export default function Dashboard(props) {
     };
     console.log("PAYLOAD", payload);
 
-    axios
+    console.log("addTask request starting....");
+    await axios
       .post(TASK_URL, payload)
+      .then(
+        (response) => {
+          console.log("got some response at line 82....", response.data);
+          callback(response.data.data, response.data.error);
+        },
+        (error) => {
+          console.log("got error at line 86....", error);
+          callback(null, error);
+        }
+      )
+      .finally(() => {
+        console.log("setUploading to false....");
+        setUploading(false);
+      });
+  };
+
+  const deleteTask = async (task_id, stage_id, callback) => {
+    setUploading(true);
+    let payload = { task_id: task_id, stage_id: stage_id };
+    axios
+      .delete(TASK_URL, { data: payload })
       .then(
         (response) => {
           callback(response.data.data, response.data.error);
@@ -80,41 +107,35 @@ export default function Dashboard(props) {
         }
       )
       .finally(() => {
+        console.log("deleted task....");
         setUploading(false);
       });
   };
 
-  const deleteTask = async (task_id, stage_id, callback) => {
-    let payload = { task_id: task_id, stage_id: stage_id };
-    axios.delete(TASK_URL, { data: payload }).then(
-      (response) => {
-        callback(response.data.data, response.data.error);
-      },
-      (error) => {
-        callback(null, error);
-      }
-    );
-  };
-
   const updateTask = async (payload, callback) => {
-    axios.put(
-      TASK_URL,
-      payload,
-      (response) => {
-        const { error, success } = response.data;
-        if (success) return callback();
-        return callback(error);
-      },
-      (error) => {
-        return callback(error);
-      }
-    );
+    setUploading(true);
+    console.log("updateTask line 105");
+    axios
+      .put(TASK_URL, payload)
+      .then(
+        (response) => {
+          const { error, success } = response.data;
+          console.log("FINAL RESPONSE", response.data);
+          if (success) return callback();
+          return callback(error);
+        },
+        (error) => {
+          return callback(error);
+        }
+      )
+      .finally(() => {
+        console.log("updated task....");
+        setUploading(false);
+      });
   };
 
   const updateStages = async (payload, callback) => {
-    axios.put(
-      BASE_URL,
-      payload,
+    axios.put(BASE_URL, payload).then(
       (response) => {
         const { error, success } = response.data;
         if (success) return callback();
@@ -158,12 +179,14 @@ export default function Dashboard(props) {
     let result = {
       source: { droppableId: from_stage_id, index: current_stage_index },
       destination: { droppableId: to_stage_id, index: -1 },
+      callback: callback,
     };
-    onDragEnd(result, callback);
+    onDragEnd(result);
   };
 
   const changeTaskTitle = (task_id, title, callback) => {
     let payload = { task_id, title };
+    console.log("changeTaskTitle line: 170");
     updateTask(payload, callback);
   };
 
@@ -185,17 +208,19 @@ export default function Dashboard(props) {
   };
 
   const resetTasksPosition = (stage) => {
-    stage.tasks = stage.tasks.map((eachTask, newPosition) => {
-      eachTask.position = newPosition;
-      return eachTask;
-    });
+    stage.tasks = stage.tasks
+      .filter((eachTask) => eachTask != null)
+      .map((eachTask, newPosition) => {
+        eachTask.position = newPosition;
+        return eachTask;
+      });
     return stage;
   };
 
-  const reorder = (fromStage, toStage) => {
-    const stageId = fromStage.droppableId;
-    const prevTaskIndex = fromStage.index;
-    const newTaskIndex = toStage.index;
+  const reorder = (source, destination) => {
+    const stageId = source.droppableId;
+    const prevTaskIndex = source.index;
+    const newTaskIndex = destination.index;
     const stageIndex = stages.map((eachStage) => eachStage.id).indexOf(stageId);
     let foundStage = stages[stageIndex];
 
@@ -207,19 +232,28 @@ export default function Dashboard(props) {
   };
 
   const transfer = (source, destination) => {
+    console.log("transfering...");
+    console.log("SOURCE GIVEN", source);
+    console.log("DESTINATION GIVEN", destination);
+
     const fromStageId = stages
       .map((eachStage) => eachStage.id)
       .indexOf(source.droppableId);
     const toStageId = stages
       .map((eachStage) => eachStage.id)
       .indexOf(destination.droppableId);
+
     let fromStage = stages[fromStageId];
     let toStage = stages[toStageId];
+
+    console.log("FROM STAGE IS", fromStage);
+    console.log("TO STAGE IS", toStage);
+
     let [updateTask] = fromStage.tasks.splice(source.index, 1);
 
     // note that if destination index is "-1", means place at the end
     let final_index = destination.index;
-    final_index = final_index === -1 ? fromStage.length : final_index;
+    final_index = final_index === -1 ? toStage.tasks.length : final_index;
     toStage.tasks.splice(final_index, 0, updateTask);
 
     toStage = resetTasksPosition(toStage);
@@ -228,9 +262,9 @@ export default function Dashboard(props) {
     return { fromStage, fromStageId, toStage, toStageId };
   };
 
-  const onDragEnd = async (result, callback) => {
+  const onDragEnd = async (result) => {
     setUploading(true);
-    const { source: fromStage, destination: toStage } = result;
+    const { source: fromStage, destination: toStage, callback } = result;
     let payload = { stages: [] };
 
     // dropped outside
@@ -277,21 +311,14 @@ export default function Dashboard(props) {
     }
 
     updateStages(payload, (error) => {
-      if (error) message.error("Failed to update dashboard");
       setUploading(false);
+      console.log("CALLBACK HERE...", callback);
+      if (error) message.error("Failed to update dashboard");
+      else if (callback) {
+        callback();
+      }
     });
-
-    if (callback) {
-      callback();
-    }
   };
-
-  // const handleUpload = () => {
-  //   setUploading(true);
-  //   setTimeout(() => {
-  //     setUploading(false);
-  //   }, 2000);
-  // };
 
   const pageLoadingScreen = (
     <div

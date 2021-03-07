@@ -4,12 +4,13 @@ const { Tasks, Users } = require("../models");
 function validateQuery(req, res, callback) {
   console.log("QUERY :", req.query);
   const { task_id } = req.query;
-  if (!task_id) {
-    res
+  try {
+    let converted_task_id = mongoose.Types.ObjectId(task_id);
+    return callback(mongoose.Types.ObjectId(converted_task_id));
+  } catch (e) {
+    return res
       .status(400)
-      .json({ success: false, error: "No task id found in query" });
-  } else {
-    callback(mongoose.Types.ObjectId(task_id));
+      .json({ success: false, error: "Wrong task_id sent in query" });
   }
 }
 

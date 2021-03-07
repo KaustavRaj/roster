@@ -17,7 +17,6 @@ export default function Boards(props) {
   useEffect(() => {
     const getBoards = async () => {
       const boardIds = globalState.userData.boards;
-      console.log("BOARD IDS in useEffect", boardIds);
 
       if (boardIds.length) {
         axios
@@ -31,6 +30,8 @@ export default function Boards(props) {
             (response) => {
               const { success, error, data } = response.data;
               if (success) {
+                console.log("--------------BOARD DATA--------------");
+                console.log(data);
                 setBoardsList(data);
               } else {
                 console.log(error);
@@ -46,7 +47,7 @@ export default function Boards(props) {
     };
 
     getBoards();
-  }, [globalState.userData.boards]);
+  }, []);
 
   const handleCreateBoardPress = () => {
     setCreateBoardVisible(true);
@@ -65,10 +66,10 @@ export default function Boards(props) {
         (response) => {
           if (response.data.success) {
             setBoardsList((prevBoardIds) => {
+              globalDispatch({ type: "BOARD_DELETE", board_id: board_id });
               let newBoardIds = prevBoardIds
                 .filter((eachBoard) => eachBoard.id !== board_id)
                 .map((board) => board.id);
-              globalDispatch({ type: "BOARDS_UPDATE", boards: newBoardIds });
               return newBoardIds;
             });
             message.success("Board deleted successfully");
@@ -87,7 +88,10 @@ export default function Boards(props) {
   };
 
   const handleAddNewBoard = (board_data) => {
-    setBoardsList((prevBoardIds) => prevBoardIds.concat(board_data));
+    setBoardsList((prevBoardList) => {
+      globalDispatch({ type: "BOARD_ADD", board_id: board_data.id });
+      return prevBoardList.concat(board_data);
+    });
   };
 
   return (
@@ -117,7 +121,7 @@ export default function Boards(props) {
           <Row gutter={[40, 40]}>
             {boardsList.map((eachBoard) => (
               <Col key={eachBoard.id} span={8}>
-                <FlashCard {...eachBoard} onDelete={handleDeleteBoard} />
+                <FlashCard boardData={eachBoard} onDelete={handleDeleteBoard} />
               </Col>
             ))}
           </Row>

@@ -5,12 +5,13 @@ const qs = require("qs");
 
 function validateQuery(req, res, callback) {
   const { board_id } = req.query;
-  if (!board_id) {
+  try {
+    let converted_board_id = mongoose.Types.ObjectId(board_id);
+    return callback(mongoose.Types.ObjectId(converted_board_id));
+  } catch (e) {
     return res
       .status(400)
-      .json({ success: false, error: "No board_id found in query" });
-  } else {
-    callback(mongoose.Types.ObjectId(board_id));
+      .json({ success: false, error: "Wrong board_id sent in query" });
   }
 }
 
@@ -18,9 +19,10 @@ async function getBoardById(req, res, next) {
   const onSuccess = (board_id) => {
     Boards.findById(board_id, (error, board) => {
       if (error) {
-        return res.status(400).json({ success: false, error: error });
+        return res
+          .status(404)
+          .json({ success: false, error: "no such board exists" });
       } else {
-        // res.status(200).json({ success: true, data: board });
         res.locals.board = board;
         next();
       }

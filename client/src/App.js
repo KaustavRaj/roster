@@ -24,7 +24,7 @@ function App() {
           const { success, data } = response.data;
           console.log("APP", response.data);
           if (success) {
-            globalDispatch({ type: "LOGIN", data: data });
+            globalDispatch({ type: "LOGIN", userData: data });
           }
         },
         (err) => {

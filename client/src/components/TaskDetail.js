@@ -1,27 +1,3 @@
-// daniel cc movie
-
-// problems :
-// *** "index" attribute not passed for GET /:board_id/dashboard
-// ^^^ change it to "position" (DONE)
-
-// *** page loading screen separate, make it work
-
-// *** rename "accessTokenData", and make such functions in common.js
-
-// *** repair delete task
-
-// *** fix setUploading and make it false after updating
-
-// *** unique add/remove assigned
-
-// *** make UserIcon "here in this file" to have remove button with handler
-
-// *** make autocomplete add users and connect to backend api for that
-
-// *** fix click on board, make the whole board clickable to open dashboard, except "delete" icon button
-
-// *** line 217 this file
-
 import React, { useState, useEffect, useContext } from "react";
 import {
   Typography,
@@ -48,20 +24,19 @@ const { Title, Paragraph } = Typography;
 const { Sider, Header, Content } = Layout;
 
 export default function TaskDetail(props) {
-  const { methods } = props;
+  const { methods, updateTasksList } = props;
   const { id: task_id } = props.itemData;
   const { id: stage_id } = props.stageData;
   const { board_id } = useParams();
   const TASK_DATA_URL = `/${board_id}/dashboard/task?task_id=${task_id}`;
 
-  // const [stageName, setStageName] = useState(props.stageData.name);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assigned, setAssigned] = useState([]);
   const [pageLoading, setPageLoading] = useState(true);
   const [hasJoined, setHasJoined] = useState(false);
   const [autocompleteOptions, setAutocompleteOptions] = useState([]);
-  const { globalState, globalDispatch } = useContext(Context);
+  const { globalState } = useContext(Context);
 
   useEffect(() => {
     const getTaskDetails = async () => {
@@ -152,16 +127,19 @@ export default function TaskDetail(props) {
     });
   };
 
-  // get this method from parent
   const handleDeleteTask = () => {
     methods.deleteTask(task_id, stage_id, () => {
-      props.handleClose();
+      updateTasksList(task_id, { toUpdate: "remove" }, () => {
+        props.handleClose();
+      });
     });
   };
 
   const handleChangeTitle = (newTitle) => {
     methods.changeTaskTitle(task_id, newTitle, () => {
-      setTitle(newTitle);
+      updateTasksList(task_id, { toUpdate: "title", newTitle }, () => {
+        setTitle(newTitle);
+      });
     });
   };
 
@@ -174,7 +152,6 @@ export default function TaskDetail(props) {
   const handleMoveTask = (to_stage) => {
     methods.moveTask(task_id, stage_id, to_stage.id, props.index, () => {
       message.success(`Task moved to ${to_stage.name}`);
-      // setStageName();
     });
   };
 
@@ -197,8 +174,8 @@ export default function TaskDetail(props) {
       visible={props.visible}
       footer={null}
       onCancel={props.handleClose}
-      width={600}
-      // width="45vw"
+      width="45vw"
+      style={{ minWidth: 450 }}
     >
       {pageLoading ? (
         renderPageLoadingScreen

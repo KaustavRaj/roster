@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
 import { Row, Col, Button, Popover } from "antd";
 import { PoweroffOutlined } from "@ant-design/icons";
-import { useHistory } from "react-router-dom";
+import { useHistory, Link } from "react-router-dom";
 import axios from "axios";
 import UserIcon from "./UserIcon";
 import Context from "../store/context";
@@ -39,9 +39,11 @@ export default function AppBar() {
 
   const CenterComponent = () => {
     return (
-      <div style={{ textAlign: "center", fontSize: 24, color: "white" }}>
-        Roster
-      </div>
+      <Link to="/boards">
+        <div style={{ textAlign: "center", fontSize: 24, color: "white" }}>
+          Roster
+        </div>
+      </Link>
     );
   };
 
@@ -85,12 +87,12 @@ export default function AppBar() {
   return (
     <header
       style={{
-        backgroundColor: "#155b85",
+        backgroundColor: "#046994",
         paddingTop: 5,
         paddingBottom: 5,
         paddingRight: 32,
         paddingLeft: 32,
-        maxHeight: 50,
+        minHeight: "5vh",
       }}
     >
       <Row align="middle">

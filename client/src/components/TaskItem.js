@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Draggable } from "react-beautiful-dnd";
 import TaskDetail from "./TaskDetail";
 
 export default function TaskItem(props) {
   const { itemData, index } = props;
-  const [taskDetailVisible, setTaskDetailVisible] = React.useState(false);
+  const [taskDetailVisible, setTaskDetailVisible] = useState(false);
 
   const handleTaskDetailOpen = () => {
     setTaskDetailVisible(true);

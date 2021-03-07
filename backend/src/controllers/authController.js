@@ -11,10 +11,6 @@ const accessTokenData = require("./common");
  * @returns 401/403 header if failed, otherwise the user data
  */
 function verifyAccessToken(req, res, next) {
-  // header format : Bearer TOKEN
-  // const authHeader = req.headers["authorization"];
-  // const token = authHeader && authHeader.split(" ")[1];
-
   const { accessToken, refreshToken } = req.cookies;
 
   if (accessToken == null) {

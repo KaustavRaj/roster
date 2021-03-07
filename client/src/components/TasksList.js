@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState } from "react";
 import { Row, Col, Button, Input, message } from "antd";
 import { PlusOutlined, CloseOutlined } from "@ant-design/icons";
 import { Droppable } from "react-beautiful-dnd";
 import TaskItem from "./TaskItem";
-import Context from "../store/context";
 
 export default function TaskList(props) {
   const { methods, stageData } = props;
@@ -13,9 +12,6 @@ export default function TaskList(props) {
   const [tasks, setTasks] = useState(tasksList);
   const [addCardVisible, setAddCardVisible] = useState(false);
   const [title, setTitle] = useState("");
-  const { globalState, globalDispatch } = useContext(Context);
-
-  useEffect(() => {}, [tasks]);
 
   const handleAddCard = async () => {
     if (title.length > 0) {
@@ -23,11 +19,7 @@ export default function TaskList(props) {
         if (error) {
           message.error(`Failed to create task`);
         } else {
-          newTask.position = tasks.length;
-          setTasks((prevTasks) => {
-            prevTasks.concat(newTask);
-            return prevTasks;
-          });
+          updateTasksList(newTask.id, { toUpdate: "add", newTask });
         }
         handleCloseAddCard();
       });
@@ -45,6 +37,53 @@ export default function TaskList(props) {
 
   const handleTitleChange = (event) => {
     setTitle(event.target.value);
+  };
+
+  const updateTasksList = (task_id, updateDetails, callback) => {
+    const { toUpdate, newTitle, newTask } = updateDetails;
+
+    console.log("updateTasksList....");
+
+    switch (toUpdate) {
+      case "title": {
+        console.log("setting title...");
+        setTasks(
+          [...tasks].map((eachTask) => {
+            if (eachTask.id === task_id)
+              return {
+                ...eachTask,
+                title: newTitle,
+              };
+            else return eachTask;
+          })
+        );
+        break;
+      }
+
+      case "add": {
+        console.log("adding task...");
+        newTask.position = tasks.length;
+        setTasks((prevTasks) => prevTasks.concat(newTask));
+        break;
+      }
+
+      case "remove": {
+        console.log("removing task...");
+        setTasks((prevTasks) =>
+          prevTasks.filter((task) => task.id !== task_id)
+        );
+        break;
+      }
+
+      default: {
+        console.log("nothing to update...");
+      }
+    }
+
+    if (callback) {
+      console.log("callback...");
+      callback();
+    }
   };
 
   const listHeader = (
@@ -120,7 +159,7 @@ export default function TaskList(props) {
   return (
     <Row
       style={{
-        backgroundColor: "rgba(0,0,0,0.1)",
+        backgroundColor: "rgba(36, 145, 227, 0.5)",
         borderRadius: 5,
       }}
     >
@@ -138,6 +177,7 @@ export default function TaskList(props) {
                   key={eachCard.id}
                   itemData={eachCard}
                   index={index}
+                  updateTasksList={updateTasksList}
                   {...props}
                 />
               </Col>

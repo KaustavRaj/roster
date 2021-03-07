@@ -5,7 +5,6 @@ const dashboardController = require("../controllers/dashboardController");
 const boardsRouter = require("express").Router();
 
 boardsRouter.use(verifyAccessToken);
-boardsRouter.get("/", boardsController.getById);
 boardsRouter.get("/multiple", boardsController.getMultipleById);
 boardsRouter.delete(
   "/",

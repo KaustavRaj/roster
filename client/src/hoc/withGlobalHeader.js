@@ -1,7 +1,7 @@
 import { Layout } from "antd";
 import AppBar from "../components/AppBar";
 
-const { Content } = Layout;
+const { Content, Header } = Layout;
 
 export default function withGlobalHeader(children) {
   return (

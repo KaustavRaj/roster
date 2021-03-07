@@ -24,6 +24,12 @@ function AddMembers(props) {
 
   useEffect(() => {
     const getMembers = async () => {
+      const onError = (error) => {
+        console.error(error);
+        message.error("Failed to get board members");
+        props.onClose();
+      };
+
       axios
         .get("/boards/multiple", {
           params: { boardIds: JSON.stringify([board_id]) },
@@ -38,11 +44,11 @@ function AddMembers(props) {
             if (success) {
               setSelectedMembers(data[0].members);
             } else {
-              props.onClose();
+              onError(error);
             }
           },
           (error) => {
-            console.error(error);
+            onError(error);
           }
         );
     };
