@@ -26,7 +26,6 @@ function AddMembers(props) {
     const getMembers = async () => {
       const onError = (error) => {
         console.error(error);
-        message.error("Failed to get board members");
         props.onClose();
       };
 
@@ -40,8 +39,8 @@ function AddMembers(props) {
         .then(
           (response) => {
             const { success, error, data } = response.data;
-            console.log(data[0]);
-            if (success) {
+            let currentBoard = data == null ? null : data[0];
+            if (success && currentBoard) {
               setSelectedMembers(data[0].members);
             } else {
               onError(error);
@@ -60,19 +59,17 @@ function AddMembers(props) {
     // const name = event.target.value;
     const name = event;
     if (name.length > 0) {
-      axios
-        .get(`http://localhost:5000/users/search?q=${name}`)
-        .then((response) => {
-          const { data } = response.data;
-          console.log(data);
-          if (data.length) {
-            setAutocompleteOptions(
-              data.map((user) => ({ key: user.id, value: user.name }))
-            );
-          } else {
-            setAutocompleteOptions([]);
-          }
-        });
+      axios.get(`/users/search?q=${name}`).then((response) => {
+        const { data } = response.data;
+        console.log(data);
+        if (data.length) {
+          setAutocompleteOptions(
+            data.map((user) => ({ key: user.id, value: user.name }))
+          );
+        } else {
+          setAutocompleteOptions([]);
+        }
+      });
     }
   };
 

@@ -26,7 +26,11 @@ const dashboardRouter = require("express").Router();
 dashboardRouter.use(verifyAccessToken);
 
 // routes for stages
-dashboardRouter.get("/", dashboardController.getAllStages);
+dashboardRouter.get(
+  "/",
+  dashboardController.verifyAccessToDashboard,
+  dashboardController.getAllStages
+);
 dashboardRouter.put("/", dashboardController.updateStages);
 // dashboardRouter.put("/multiple", dashboardController.updateStages);
 

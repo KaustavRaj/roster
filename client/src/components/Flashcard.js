@@ -14,7 +14,6 @@ export default function FlashCard(props) {
   return (
     <Link to={linkTo}>
       <Card
-        // headStyle={{ color: "white" }}
         title={boardData.name}
         hoverable
         className="flashcard"

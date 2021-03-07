@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Row, Col, Button, Input, message } from "antd";
 import { PlusOutlined, CloseOutlined } from "@ant-design/icons";
 import { Droppable } from "react-beautiful-dnd";
@@ -6,12 +6,18 @@ import TaskItem from "./TaskItem";
 
 export default function TaskList(props) {
   const { methods, stageData } = props;
-  let { tasks: tasksList, ...stageMeta } = stageData;
-  tasksList = tasksList.sort((task1, task2) => task1.position - task2.position);
+  let { ...stageMeta } = stageData;
 
-  const [tasks, setTasks] = useState(tasksList);
+  const [tasks, setTasks] = useState([]);
   const [addCardVisible, setAddCardVisible] = useState(false);
   const [title, setTitle] = useState("");
+
+  useEffect(() => {
+    console.log("got stageData", stageData);
+    let tasksCopy = Array.from(stageData.tasks);
+    tasksCopy.sort((task1, task2) => task1.position - task2.position);
+    setTasks(tasksCopy);
+  }, [stageData.tasks]);
 
   const handleAddCard = async () => {
     if (title.length > 0) {
@@ -171,17 +177,20 @@ export default function TaskList(props) {
             {...provided.droppableProps}
             style={{ width: "100%" }}
           >
-            {tasks.map((eachCard, index) => (
-              <Col key={eachCard.id} span={24}>
-                <TaskItem
-                  key={eachCard.id}
-                  itemData={eachCard}
-                  index={index}
-                  updateTasksList={updateTasksList}
-                  {...props}
-                />
-              </Col>
-            ))}
+            {tasks.map(
+              (eachCard, index) =>
+                eachCard && (
+                  <Col key={eachCard.id} span={24}>
+                    <TaskItem
+                      key={eachCard.id}
+                      itemData={eachCard}
+                      index={index}
+                      updateTasksList={updateTasksList}
+                      {...props}
+                    />
+                  </Col>
+                )
+            )}
             {provided.placeholder}
           </div>
         )}

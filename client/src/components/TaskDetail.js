@@ -45,6 +45,7 @@ export default function TaskDetail(props) {
         .then(
           (response) => {
             const { success, error, data } = response.data;
+            console.log("getTaskDetails", response);
             if (success) {
               let alreadyJoined =
                 data.assigned.find(
@@ -261,43 +262,21 @@ export default function TaskDetail(props) {
                 <Divider />
                 <Paragraph strong>Move to</Paragraph>
                 <Row gutter={[0, 6]}>
-                  {
-                    props.stagesList.map((join_stage) => {
-                      return (
-                        join_stage.id !== stage_id && (
-                          <Col key={join_stage.id} span={24}>
-                            <Button
-                              block
-                              type="dashed"
-                              onClick={() => handleMoveTask(join_stage)}
-                            >
-                              {join_stage.name}
-                            </Button>
-                          </Col>
-                        )
-                      );
-                    })
-                    // [
-                    //   "To Do",
-                    //   "In development",
-                    //   "To be Reviewed",
-                    //   "Finished",
-                    // ].map((join_stage) => {
-                    //   return (
-                    //     join_stage !== stageName && (
-                    //       <Col key={join_stage} span={24}>
-                    //         <Button
-                    //           block
-                    //           type="dashed"
-                    //           onClick={() => handleMoveTask(join_stage)}
-                    //         >
-                    //           {join_stage}
-                    //         </Button>
-                    //       </Col>
-                    //     )
-                    //   );
-                    // })
-                  }
+                  {props.stagesList.map((join_stage) => {
+                    return (
+                      join_stage.id !== stage_id && (
+                        <Col key={join_stage.id} span={24}>
+                          <Button
+                            block
+                            type="dashed"
+                            onClick={() => handleMoveTask(join_stage)}
+                          >
+                            {join_stage.name}
+                          </Button>
+                        </Col>
+                      )
+                    );
+                  })}
                 </Row>
               </Sider>
             </Layout>

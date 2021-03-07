@@ -3,11 +3,7 @@ const config = require("../config");
 const accessTokenData = require("./common");
 
 /**
- *
- * @param {*} req request
- * @param {*} res response
- * @param {*} next callback
- * @summary verifies the access token provided
+ * @summary verifies access token when directy accessing a page
  * @returns 401/403 header if failed, otherwise the user data
  */
 function verifyAccessToken(req, res, next) {
@@ -41,6 +37,9 @@ function verifyAccessToken(req, res, next) {
   }
 }
 
+/**
+ * @returns a brand new access token, provided the refresh token is valid
+ */
 function renewAccessToken(req, res, next) {
   const { refreshToken } = req.cookies;
 
@@ -76,9 +75,11 @@ function renewAccessToken(req, res, next) {
   });
 }
 
+/**
+ * @returns access token & refresh token, after signup
+ */
 function getNewTokens(req, res, next) {
   const { user } = res.locals;
-  // const dataToEncrypt = accessTokenData(user);
   const dataToEncrypt = { id: user._id };
   const accessToken = jwt.sign(dataToEncrypt, config.token.access_secret, {
     expiresIn: config.token.expiry_in,

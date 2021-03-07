@@ -1,8 +1,8 @@
 const mongoose = require("../mongoose");
-const qs = require("qs");
 const { Stages } = require("../models");
 const boardsController = require("./boardsController");
 const taskController = require("./taskController");
+const usersController = require("./usersController");
 const config = require("../config");
 
 async function getAllTasksInStage(stage_id, callback) {
@@ -58,8 +58,34 @@ function rearrangeStages(stages) {
   return rearrangedStages;
 }
 
+async function verifyAccessToDashboard(req, res, next) {
+  console.log("RES LOCALS IN ASYNC", res.locals);
+  let board_id = String(res.locals.board_id);
+  console.log("verifyAccessToDashboard board_id", board_id);
+  req.query.userIds = [res.locals.decodedTokenData.id];
+
+  usersController.getMultipleById(req, res, () => {
+    let [user] = res.locals.usersData;
+    let boards_list = user == null ? [] : user.boards.map((id) => String(id));
+
+    console.log("verifyAccessToDashboard board_list", boards_list);
+
+    let index = boards_list.indexOf(board_id);
+
+    console.log("verifyAccessToDashboard index", index);
+
+    if (index == -1) {
+      return res
+        .status(404)
+        .json({ success: false, error: "board doesn't exist" });
+    }
+    next();
+  });
+}
+
 async function getAllStages(req, res, next) {
   req.query.board_id = res.locals.board_id;
+  console.log("DECODED TOKEN DATA", res.locals.decodedTokenData);
 
   boardsController.getById(req, res, () => {
     const board = res.locals.board;
@@ -301,4 +327,5 @@ module.exports = {
   updateStages,
   deleteStages,
   createPredefinedStages,
+  verifyAccessToDashboard,
 };

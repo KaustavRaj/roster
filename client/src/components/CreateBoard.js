@@ -30,19 +30,17 @@ export default function CreateBoard(props) {
     // const name = event.target.value;
     const name = event;
     if (name.length > 0) {
-      axios
-        .get(`http://localhost:5000/users/search?q=${name}`)
-        .then((response) => {
-          const { data } = response.data;
-          console.log(data);
-          if (data.length) {
-            setAutocompleteOptions(
-              data.map((user) => ({ key: user.id, value: user.name }))
-            );
-          } else {
-            setAutocompleteOptions([]);
-          }
-        });
+      axios.get(`/users/search?q=${name}`).then((response) => {
+        const { data } = response.data;
+        console.log(data);
+        if (data.length) {
+          setAutocompleteOptions(
+            data.map((user) => ({ key: user.id, value: user.name }))
+          );
+        } else {
+          setAutocompleteOptions([]);
+        }
+      });
     }
   };
 

@@ -44,7 +44,7 @@ export default function Dashboard(props) {
           }
         },
         (err) => {
-          history.push("/404");
+          history.push("/boards");
           console.error(`GET /${board_id}/dashboard/`, err);
         }
       );
@@ -80,7 +80,22 @@ export default function Dashboard(props) {
       .then(
         (response) => {
           console.log("got some response at line 82....", response.data);
-          callback(response.data.data, response.data.error);
+          const { success, error, data } = response.data;
+
+          if (success) {
+            let newTask = { ...data, position: position };
+            setStages((prevStages) =>
+              prevStages.map((stage) => {
+                if (stage.id === stage_id) {
+                  return {
+                    ...stage,
+                    tasks: stage.tasks.concat(newTask),
+                  };
+                } else return stage;
+              })
+            );
+            callback(data, error);
+          }
         },
         (error) => {
           console.log("got error at line 86....", error);
@@ -100,7 +115,23 @@ export default function Dashboard(props) {
       .delete(TASK_URL, { data: payload })
       .then(
         (response) => {
-          callback(response.data.data, response.data.error);
+          const { success, error, data } = response.data;
+
+          if (success) {
+            setStages((prevStages) =>
+              prevStages.map((stage) => {
+                if (stage.id === stage_id) {
+                  return {
+                    ...stage,
+                    tasks: stage.tasks.filter(
+                      (eachTask) => eachTask.id !== task_id
+                    ),
+                  };
+                } else return stage;
+              })
+            );
+            callback(data, error);
+          }
         },
         (error) => {
           callback(null, error);
@@ -135,6 +166,7 @@ export default function Dashboard(props) {
   };
 
   const updateStages = async (payload, callback) => {
+    console.log("updateStages PAYLOAD", payload);
     axios.put(BASE_URL, payload).then(
       (response) => {
         const { error, success } = response.data;
@@ -195,6 +227,7 @@ export default function Dashboard(props) {
     updateTask(payload, callback);
   };
 
+  // methods exposed to the children to ask parent for backend uploads
   const methods = {
     addTask,
     deleteTask,
@@ -207,6 +240,7 @@ export default function Dashboard(props) {
     updateStages,
   };
 
+  // resets the position attribute tasks after each drag and drop
   const resetTasksPosition = (stage) => {
     stage.tasks = stage.tasks
       .filter((eachTask) => eachTask != null)
@@ -217,25 +251,31 @@ export default function Dashboard(props) {
     return stage;
   };
 
+  // called when task is moved in the same stage itself
   const reorder = (source, destination) => {
+    console.log("BEFORE REORDER stages", stages);
     const stageId = source.droppableId;
     const prevTaskIndex = source.index;
     const newTaskIndex = destination.index;
-    const stageIndex = stages.map((eachStage) => eachStage.id).indexOf(stageId);
-    let foundStage = stages[stageIndex];
 
+    console.log("REORDER SOURCE", source);
+    console.log("REORDER DEST", destination);
+
+    const stageIndex = stages.map((eachStage) => eachStage.id).indexOf(stageId);
+    let foundStage = { ...stages[stageIndex] };
+
+    console.log("BEFORE STAGE", foundStage);
     const [updateTask] = foundStage.tasks.splice(prevTaskIndex, 1);
+
     foundStage.tasks.splice(newTaskIndex, 0, updateTask);
     foundStage = resetTasksPosition(foundStage);
 
+    console.log("AFTER STAGE", foundStage);
     return { foundStage, stageIndex };
   };
 
+  // called when task is transferred from one stage to other
   const transfer = (source, destination) => {
-    console.log("transfering...");
-    console.log("SOURCE GIVEN", source);
-    console.log("DESTINATION GIVEN", destination);
-
     const fromStageId = stages
       .map((eachStage) => eachStage.id)
       .indexOf(source.droppableId);
@@ -245,9 +285,6 @@ export default function Dashboard(props) {
 
     let fromStage = stages[fromStageId];
     let toStage = stages[toStageId];
-
-    console.log("FROM STAGE IS", fromStage);
-    console.log("TO STAGE IS", toStage);
 
     let [updateTask] = fromStage.tasks.splice(source.index, 1);
 
@@ -267,30 +304,37 @@ export default function Dashboard(props) {
     const { source: fromStage, destination: toStage, callback } = result;
     let payload = { stages: [] };
 
-    // dropped outside
+    // dropped outside, ignore it
     if (!toStage) {
       setUploading(false);
       return;
     }
 
+    // ids are same, means drag and drop in same stage, update
+    // the stage only if index of the task has changed
     if (fromStage.droppableId === toStage.droppableId) {
-      // update in same stage only if index of task has changed
       if (fromStage.index === toStage.index) {
         setUploading(false);
         return;
       }
 
-      let { stage: reorderedStage, stageIndex } = reorder(fromStage, toStage);
+      let { foundStage: reorderedStage, stageIndex } = reorder(
+        fromStage,
+        toStage
+      );
+
       payload.stages = [reorderedStage];
 
-      setStages((prevStages) => {
-        console.log("REORDERED STAGE", reorderedStage);
-        const newStages = [...prevStages];
-        newStages[stageIndex] = reorderedStage;
-        return newStages;
-      });
-    } else {
-      // update across stages
+      setStages((prevStages) =>
+        prevStages.map((stage, index) =>
+          index === stageIndex ? reorderedStage : stage
+        )
+      );
+    }
+
+    // otherwise task is dragged between stages, the payload
+    // will contain both the stages re-arranged
+    else {
       const {
         fromStage: from,
         fromStageId: fromId,
@@ -303,16 +347,12 @@ export default function Dashboard(props) {
         const newStages = [...prevStages];
         newStages[fromId] = from;
         newStages[toId] = to;
-        console.log("CHANGED STAGES");
-        console.log(from);
-        console.log(to);
         return newStages;
       });
     }
 
     updateStages(payload, (error) => {
       setUploading(false);
-      console.log("CALLBACK HERE...", callback);
       if (error) message.error("Failed to update dashboard");
       else if (callback) {
         callback();

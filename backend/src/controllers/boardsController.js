@@ -15,6 +15,9 @@ function validateQuery(req, res, callback) {
   }
 }
 
+/**
+ * @returns board data for a given board_id
+ */
 async function getBoardById(req, res, next) {
   const onSuccess = (board_id) => {
     Boards.findById(board_id, (error, board) => {
@@ -32,6 +35,9 @@ async function getBoardById(req, res, next) {
   validateQuery(req, res, onSuccess);
 }
 
+/**
+ * @returns all the board data for an array of board ids
+ */
 async function getMultipleBoardsById(req, res, next) {
   let boardIds;
 
