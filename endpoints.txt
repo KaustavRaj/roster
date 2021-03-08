@@ -1,20 +1,20 @@
 GET:
-/login
-/signup
-/users/search
-/boards/multiple
-/:board_id/dashboard
-/:board_id/dashboard/task
+/api/login
+/api/signup
+/api/users/search
+/api/boards/multiple
+/api/:board_id/dashboard
+/api/:board_id/dashboard/task
 
 POST:
-/boards
-/logout
-/:board_id/dashboard/task
+/api/boards
+/api/logout
+/api/:board_id/dashboard/task
 
 PUT:
-/boards
-/:board_id/dashboard
+/api/boards
+/api/:board_id/dashboard
 
 DELETE:
-/boards
-/:board_id/dashboard/task
+/api/boards
+/api/:board_id/dashboard/task
