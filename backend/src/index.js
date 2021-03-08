@@ -18,13 +18,13 @@ app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "../public")));
 
-app.use("/signup", routes.signup);
-app.use("/login", routes.login);
-app.use("/logout", routes.logout);
-app.use("/boards", routes.boards);
-app.use("/users", routes.users);
+app.use("/api/signup", routes.signup);
+app.use("/api/login", routes.login);
+app.use("/api/logout", routes.logout);
+app.use("/api/boards", routes.boards);
+app.use("/api/users", routes.users);
 app.use(
-  "/:board_id/dashboard",
+  "/api/:board_id/dashboard",
   (req, res, next) => {
     res.locals = { ...req.params };
     next();

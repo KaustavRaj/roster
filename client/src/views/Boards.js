@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from "react";
 import { Layout, Button, Row, Col, Typography, message } from "antd";
 import axios from "axios";
 import qs from "qs";
-import { FlashCard, CreateBoard } from "../components";
+import { FlashCard, CreateBoard, LoadingScreen } from "../components";
 import Context from "../store/context";
 import "./Boards.css";
 
@@ -13,6 +13,8 @@ export default function Boards(props) {
   const [createBoardVisible, setCreateBoardVisible] = useState(false);
   const [boardsList, setBoardsList] = useState([]);
   const { globalState, globalDispatch } = useContext(Context);
+  const MULTIPLE_BOARDS_URL = "/api/boards/multiple";
+  const DELETE_BOARD_URL = "/api/boards";
 
   useEffect(() => {
     const getBoards = async () => {
@@ -20,7 +22,7 @@ export default function Boards(props) {
 
       if (boardIds.length) {
         axios
-          .get("/boards/multiple", {
+          .get(MULTIPLE_BOARDS_URL, {
             params: { boardIds: JSON.stringify(boardIds) },
             paramsSerializer: (params) => {
               return qs.stringify(params);
@@ -40,10 +42,11 @@ export default function Boards(props) {
             (err) => {
               console.error("GET /boards/multiple", err);
             }
-          );
+          )
+          .finally(() => {
+            setPageLoading(false);
+          });
       }
-
-      setPageLoading(false);
     };
 
     getBoards();
@@ -61,7 +64,7 @@ export default function Boards(props) {
     console.log("DELETE board_id", board_id);
 
     axios
-      .delete("/boards", { params: { board_id } })
+      .delete(DELETE_BOARD_URL, { params: { board_id } })
       .then(
         (response) => {
           if (response.data.success) {
@@ -72,7 +75,6 @@ export default function Boards(props) {
                 .map((board) => board.id);
               return newBoardIds;
             });
-            message.success("Board deleted successfully");
           } else {
             throw new Error(response.data.error);
           }
@@ -82,8 +84,7 @@ export default function Boards(props) {
         }
       )
       .catch((e) => {
-        message.error(`Failed to delete board`);
-        console.error("DELETE /boards : ", e);
+        console.log("DELETE /boards : ", e);
       });
   };
 
@@ -94,7 +95,9 @@ export default function Boards(props) {
     });
   };
 
-  return (
+  return pageLoading ? (
+    <LoadingScreen />
+  ) : (
     <Layout
       className="transparent-bg padding fullscreen"
       style={{

@@ -30,7 +30,7 @@ function AddMembers(props) {
       };
 
       axios
-        .get("/boards/multiple", {
+        .get("/api/boards/multiple", {
           params: { boardIds: JSON.stringify([board_id]) },
           paramsSerializer: (params) => {
             return qs.stringify(params);
@@ -59,7 +59,7 @@ function AddMembers(props) {
     // const name = event.target.value;
     const name = event;
     if (name.length > 0) {
-      axios.get(`/users/search?q=${name}`).then((response) => {
+      axios.get(`/api/users/search?q=${name}`).then((response) => {
         const { data } = response.data;
         console.log(data);
         if (data.length) {
@@ -97,7 +97,7 @@ function AddMembers(props) {
       board_id,
       members: selectedMembers.map((member) => member.id),
     };
-    axios.put("/boards", payload).then(
+    axios.put("/api/boards", payload).then(
       (response) => {
         const { success, data, error } = response.data;
         if (success) {

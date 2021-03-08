@@ -4,7 +4,7 @@ const config = require("../config");
 
 async function registerNewUser(req, res, next) {
   const { name, email, password } = req.body;
-  // check if fullname & email & password is sent
+  // check if name & email & password is not null
   if (!email || !password || !name) {
     res
       .status(401)

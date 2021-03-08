@@ -20,7 +20,6 @@ async function getTaskUtil(task_id, callback) {
       return callback(null, error);
     }
 
-    console.log("TASK ID", task_id, "TASK DATA", task, "ERROR", error);
     const data = {
       id: task._id,
       description: task.description,
@@ -49,10 +48,7 @@ async function getTaskUtil(task_id, callback) {
 
           if (remaining_search === 0) {
             data.assigned = assigned_user_details;
-            console.log("----------------------------------------------");
-            console.log("TASK DATA");
-            console.log(data);
-            console.log("----------------------------------------------");
+
             return callback(data);
           }
         });
@@ -96,19 +92,15 @@ async function deleteTaskMultiple(task_ids, callback) {
 async function deleteTaskById(req, res, next) {
   const { task_id } = req.body;
 
-  console.log("REQ BODY IN DELETE TASK", req.body);
-
   if (!task_id) {
     return res.status(400).json({ success: false, error: "no task_id found" });
   }
 
   deleteTaskUtil(task_id, (deletedTask, error) => {
-    console.log("DELETED TASK");
     if (error) res.status(400).json({ success: false, error: error });
     res.locals = req.body;
     res.locals.operationType = "DELETE_TASK";
 
-    console.log("RES LOCALS NEW", res.locals);
     next();
   });
 }

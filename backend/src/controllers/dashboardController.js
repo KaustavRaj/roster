@@ -34,8 +34,6 @@ async function getAllTasksInStage(stage_id, callback) {
           position: eachTask.position,
         };
         stageData.tasks.push(taskData);
-        console.log("#########################");
-        console.log("taskData", taskData);
 
         if (stageData.tasks.length === tasks.length) {
           callback(stageData);
@@ -45,9 +43,10 @@ async function getAllTasksInStage(stage_id, callback) {
   });
 }
 
-// rearranges the stages according to config.predefined_stages
+// rearranges the stages according to the position of predefined
+// stage names in config file
+
 function rearrangeStages(stages) {
-  console.log("STAGES", stages);
   const predefinedStageNames = config.predefined_stages.names;
   let rearrangedStages = [];
   predefinedStageNames.map((name) => {
@@ -58,21 +57,18 @@ function rearrangeStages(stages) {
   return rearrangedStages;
 }
 
+// checks whether a user is authorized to access the dashboard
+
 async function verifyAccessToDashboard(req, res, next) {
-  console.log("RES LOCALS IN ASYNC", res.locals);
   let board_id = String(res.locals.board_id);
-  console.log("verifyAccessToDashboard board_id", board_id);
+
   req.query.userIds = [res.locals.decodedTokenData.id];
 
   usersController.getMultipleById(req, res, () => {
     let [user] = res.locals.usersData;
     let boards_list = user == null ? [] : user.boards.map((id) => String(id));
 
-    console.log("verifyAccessToDashboard board_list", boards_list);
-
     let index = boards_list.indexOf(board_id);
-
-    console.log("verifyAccessToDashboard index", index);
 
     if (index == -1) {
       return res
@@ -83,9 +79,11 @@ async function verifyAccessToDashboard(req, res, next) {
   });
 }
 
+// returns all the stages along with tasks data corresponding
+// to a board id; returns error message if failed to fetch stage/task
+
 async function getAllStages(req, res, next) {
   req.query.board_id = res.locals.board_id;
-  console.log("DECODED TOKEN DATA", res.locals.decodedTokenData);
 
   boardsController.getById(req, res, () => {
     const board = res.locals.board;
@@ -110,8 +108,7 @@ async function getAllStages(req, res, next) {
         data.stages.push(stageData);
         if (data.stages.length == stageIds.length) {
           data.stages = rearrangeStages(data.stages);
-          console.log("#########################");
-          console.log("data for stages", data);
+
           return res.status(200).json({ success: true, data: data });
         }
       });
@@ -119,9 +116,10 @@ async function getAllStages(req, res, next) {
   });
 }
 
-/**
- * operationType => "ADD_TASK", "DELETE_TASK", "REARRANGE_TASKS"
- */
+// updates and returns a single stage according to the operation
+// type : ADD_TASK, DELETE_TASK, REARRANGE TASKS (when drag and
+// drop of task occurs in the same stage itself)
+
 async function updateStage(req, res, next) {
   const {
     operationType,
@@ -131,11 +129,9 @@ async function updateStage(req, res, next) {
     task,
     position,
   } = res.locals;
-  console.log("res.locals", res.locals);
 
   switch (operationType) {
     case "ADD_TASK": {
-      console.log("ADDING TASK....");
       let task_id = task._id;
       Stages.findByIdAndUpdate(
         stage_id,
@@ -153,7 +149,6 @@ async function updateStage(req, res, next) {
     }
 
     case "DELETE_TASK": {
-      console.log("DELETING TASK.....");
       Stages.findById(stage_id, (error, foundStage) => {
         if (error) {
           return res
@@ -162,7 +157,6 @@ async function updateStage(req, res, next) {
         }
 
         let updatedTasks = foundStage.tasks;
-        console.log("OLD TASKS", updatedTasks);
 
         updatedTasks = updatedTasks
           .filter((eachTask) => String(eachTask.id) !== task_id)
@@ -170,8 +164,6 @@ async function updateStage(req, res, next) {
             eachTask.position = index;
             return eachTask;
           });
-
-        console.log("UPDATED TASKS", updatedTasks);
 
         Stages.findByIdAndUpdate(
           stage_id,
@@ -185,8 +177,6 @@ async function updateStage(req, res, next) {
                 .json({ success: false, error: "Couldn't update stage" });
             }
 
-            console.log("SENT DATA", updatedStage);
-
             return res.status(201).json({ success: true, data: updatedStage });
           }
         );
@@ -195,7 +185,6 @@ async function updateStage(req, res, next) {
     }
 
     case "REARRANGE_TASKS": {
-      console.log("REARRANGING....");
       Stages.findByIdAndUpdate(stage_id, { tasks: taskIds }, (error) => {
         if (error)
           return res.status(400).json({ success: false, error: error });
@@ -205,7 +194,6 @@ async function updateStage(req, res, next) {
     }
 
     default: {
-      console.log("DEFAULT.....");
       return res
         .status(400)
         .json({ success: false, error: "Incorrect operationType" });
@@ -213,7 +201,9 @@ async function updateStage(req, res, next) {
   }
 }
 
-// make it use updateStage()
+// updates multiple stages when drag and drop occurs of task
+// occurs across stages
+
 async function updateStages(req, res, next) {
   const { stages } = req.body;
 
@@ -275,14 +265,9 @@ async function createPredefinedStages(req, res, next) {
       }
       createdStageIds.push(createdStageId);
       if (createdStageIds.length == predefinedStageNames.length) {
-        console.log("################################");
-        console.log("res.locals.board", res.locals.board);
         res.locals.board = req.body.data;
         res.locals.board.stages = createdStageIds;
-        console.log("################################");
-        console.log("created stages");
-        console.log("stages list", createdStageIds);
-        console.log("after update", res.locals.board);
+
         next();
       }
     });
@@ -299,10 +284,12 @@ async function deleteStage(stage_id, callback) {
   });
 }
 
+// called when the entire board needs to be deleted; deletes
+// all corresponding stages associated to the board id
+
 async function deleteStages(req, res, next) {
   const stageIds = res.locals.board.stages;
-  console.log("###################################");
-  console.log("delete stageids", stageIds);
+
   let deletesRemaining = stageIds.length;
 
   stageIds.map(async (stage_id) => {
@@ -315,6 +302,7 @@ async function deleteStages(req, res, next) {
 
       deletesRemaining -= 1;
       if (deletesRemaining === 0) {
+        console.log("deleted all stages...");
         next();
       }
     });

@@ -5,7 +5,7 @@ export default function Signup(props) {
   return (
     <Forms
       formType="signup"
-      url="/signup"
+      url="/api/signup"
       formTitle="Signup"
       footer={
         <>

@@ -28,7 +28,7 @@ export default function TaskDetail(props) {
   const { id: task_id } = props.itemData;
   const { id: stage_id } = props.stageData;
   const { board_id } = useParams();
-  const TASK_DATA_URL = `/${board_id}/dashboard/task?task_id=${task_id}`;
+  const TASK_DATA_URL = `/api/${board_id}/dashboard/task?task_id=${task_id}`;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -72,7 +72,7 @@ export default function TaskDetail(props) {
 
     const getMembers = async () => {
       axios
-        .get("/boards/multiple", {
+        .get("/api/boards/multiple", {
           params: { boardIds: JSON.stringify([board_id]) },
           paramsSerializer: (params) => {
             return qs.stringify(params);

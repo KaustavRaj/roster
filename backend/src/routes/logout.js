@@ -2,7 +2,7 @@ const logoutRouter = require("express").Router();
 
 logoutRouter.post("/", (req, res) => {
   return res
-    .status(202)
+    .status(200)
     .clearCookie("accessToken")
     .clearCookie("refreshToken")
     .json({ success: true });

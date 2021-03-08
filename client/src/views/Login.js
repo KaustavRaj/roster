@@ -5,7 +5,7 @@ export default function Login(props) {
   return (
     <Forms
       formType="login"
-      url="/login"
+      url="/api/login"
       formTitle="Login"
       footer={
         <>

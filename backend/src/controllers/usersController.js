@@ -1,29 +1,41 @@
 const bcrypt = require("bcrypt");
 const { Users } = require("../models");
 const config = require("../config");
-const accessTokenData = require("./common");
+const { transformUserData } = require("./common");
 const mongoose = require("../mongoose");
 
+// Checks whether a valid user id is passed in query
+// if yes, call the callback function after converting
+// the id to mongoose ObjectId, otherwise send invalid
+// error message
+
 function validateQuery(req, res, callback) {
-  const { id } = req.query;
-  if (!id) {
-    res
+  try {
+    const { id } = req.query;
+    if (!id) {
+      throw new Error();
+    } else {
+      callback(mongoose.Types.ObjectId(id));
+    }
+  } catch (e) {
+    return res
       .status(400)
-      .json({ success: false, error: "No user id found in query" });
-  } else {
-    callback(mongoose.Types.ObjectId(id));
+      .json({ success: false, error: "Invalid user id found in query" });
   }
 }
+
+// returns the user data corresponding to a user id
+// if not such user found / error occured, send error msg
 
 async function getUserById(req, res, next) {
   const onSuccess = (user_id) => {
     Users.findById(user_id, (error, user) => {
-      if (error) {
+      if (error || user == null) {
         return res.status(400).json({ success: false, error: error });
       } else {
         return res
           .status(200)
-          .json({ success: true, data: accessTokenData(user) });
+          .json({ success: true, data: transformUserData(user) });
       }
     });
   };
@@ -31,24 +43,29 @@ async function getUserById(req, res, next) {
   validateQuery(req, res, onSuccess);
 }
 
-// update line 51
+// returns a bulk request of multiple user ids
+// if some user id is not found, skip that send the rest
+
 async function getMultipleUsersById(req, res, next) {
   const { userIds } = req.query;
 
   if (!userIds) {
-    return res.status(400).json({ success: false, error: "No ids found" });
+    return res.status(400).json({ success: false, error: "No user ids found" });
   }
 
-  res.locals.usersData = [];
-  userIds.forEach((user_id, index) => {
+  let errorsCount = 0;
+  let allUsersData = [];
+
+  userIds.forEach((user_id) => {
     Users.findById(user_id, (error, user) => {
       if (error) {
-        console.log("multiple user data retrieval", error);
-        // return res.status(400).json({ success: false, error: error });
+        errorsCount += 1;
+        console.log("multiple user data retrieval at user id = ", user_id);
       } else {
-        res.locals.usersData.push(accessTokenData(user));
+        allUsersData.push(transformUserData(user));
 
-        if (index == userIds.length - 1) {
+        if (userIds.length === allUsersData.length + errorsCount) {
+          res.locals.usersData = allUsersData;
           next();
         }
       }
@@ -70,7 +87,6 @@ async function deleteUserById(req, res, next) {
   validateQuery(req, res, onSuccess);
 }
 
-// ------------------>  WRONG FUNCTION <------------------------
 async function updateUserById(req, res, next) {
   const onSuccess = (user_id) => {
     const { data } = req.data;
@@ -86,17 +102,19 @@ async function updateUserById(req, res, next) {
   validateQuery(req, res, onSuccess);
 }
 
-// make this function use updateUserById()
+// handles multiple user updates, whenever a new board is created
+// or deleted, all associated users' boards attribute are updated
+// if user is not found skip it; operation type can be :
+// 1. "ADD" -> when adding a new board
+// 2. "DELETE" -> when a board is deleted
+
 async function boardMultipleUpdatesById(req, res, next) {
   const { id: board_id, members: memberIds } = res.locals.board;
   const type = res.locals.operationType;
   let errorIds = []; // stores members IDs which issued an error in updation
   let updatedMembers = []; // stores updated users data
 
-  console.log("################################");
-  console.log("number of members to update", memberIds.length);
-
-  memberIds.map((memberId) => {
+  memberIds.map(async (memberId) => {
     memberId = mongoose.Types.ObjectId(memberId);
     let toUpdate, options;
 
@@ -116,28 +134,15 @@ async function boardMultipleUpdatesById(req, res, next) {
       options,
       (error, updatedUser) => {
         countUsersUpdated += 1;
-        console.log("################################");
-        console.log(
-          "updated memberId",
-          memberId,
-          "countUsersUpdated",
-          countUsersUpdated
-        );
 
         if (error) {
           errorIds.push(memberId);
-          console.log("################################");
-          console.log("error occurred for", memberId);
         } else {
           const { _id: id, name } = updatedUser;
           updatedMembers.push({ id, name });
         }
 
         if (countUsersUpdated === memberIds.length) {
-          console.log("################################");
-          console.log("completed all user updates");
-          console.log("error ids", errorIds);
-
           if (type == "DELETE") return res.status(202).json({ success: true });
 
           res.locals.board.members = updatedMembers;
@@ -154,7 +159,6 @@ async function boardMultipleUpdatesById(req, res, next) {
 
 async function registerUser(req, res, next) {
   const { name, email, password } = req.body;
-  // check if fullname & email & password is sent
   if (!email || !password || !name) {
     return res
       .status(401)
@@ -181,6 +185,8 @@ async function registerUser(req, res, next) {
   });
 }
 
+// used for autocomplete feature, by full name of users;
+// limits query result as given in config file
 async function getUserByName(req, res, next) {
   const { q } = req.query;
   if (!q)
@@ -189,7 +195,6 @@ async function getUserByName(req, res, next) {
 
   let regexp = new RegExp("^" + q);
   Users.find(
-    // { $text: { $search: `${q}*` } },
     { name: { $regex: regexp, $options: "i" } },
     null,
     { limit: config.user_search.max_entries },
@@ -197,7 +202,7 @@ async function getUserByName(req, res, next) {
       if (error) return res.status(400).json({ success: false, error: error });
       return res.status(200).json({
         success: true,
-        data: foundUsers.map((user) => accessTokenData(user)),
+        data: foundUsers.map((user) => transformUserData(user)),
       });
     }
   );

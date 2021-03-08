@@ -16,7 +16,7 @@ export default function AppBar() {
   };
 
   const handleLogout = () => {
-    axios.post("/logout").then(
+    axios.post("/api/logout").then(
       (response) => {
         if (response.data.success) {
           globalDispatch({ type: "LOGOUT" });

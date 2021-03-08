@@ -26,11 +26,9 @@ export default function CreateBoard(props) {
     setBoardName(event.target.value);
   };
 
-  const handleSearch = async (event) => {
-    // const name = event.target.value;
-    const name = event;
+  const handleSearch = async (name) => {
     if (name.length > 0) {
-      axios.get(`/users/search?q=${name}`).then((response) => {
+      axios.get(`/api/users/search?q=${name}`).then((response) => {
         const { data } = response.data;
         console.log(data);
         if (data.length) {
@@ -88,7 +86,7 @@ export default function CreateBoard(props) {
 
     axios
       .post(
-        "/boards",
+        "/api/boards",
         { data: { ...payload } },
         {
           headers: {

@@ -1,7 +1,12 @@
-const { Boards } = require("../models");
-const usersController = require("./usersController");
+const { Boards, Users } = require("../models");
 const mongoose = require("../mongoose");
 const qs = require("qs");
+const { transformBoardData } = require("./common");
+
+// Checks whether a valid board id is passed in query
+// if yes, call the callback function after converting
+// the id to mongoose ObjectId, otherwise send invalid
+// error message
 
 function validateQuery(req, res, callback) {
   const { board_id } = req.query;
@@ -11,13 +16,10 @@ function validateQuery(req, res, callback) {
   } catch (e) {
     return res
       .status(400)
-      .json({ success: false, error: "Wrong board_id sent in query" });
+      .json({ success: false, error: "Invalid board_id sent in query" });
   }
 }
 
-/**
- * @returns board data for a given board_id
- */
 async function getBoardById(req, res, next) {
   const onSuccess = (board_id) => {
     Boards.findById(board_id, (error, board) => {
@@ -35,51 +37,75 @@ async function getBoardById(req, res, next) {
   validateQuery(req, res, onSuccess);
 }
 
-/**
- * @returns all the board data for an array of board ids
- */
+// returns all board data of a user along with associated
+// members' data; skips the boards not found
 async function getMultipleBoardsById(req, res, next) {
   let boardIds;
 
   try {
     boardIds = JSON.parse(qs.parse(req.query).boardIds);
-    console.log("###################################");
-    console.log("boardIds", boardIds);
     if (!boardIds || !boardIds.length) throw new Error();
   } catch (e) {
     return res.status(400).json({ success: false, error: "No ids found" });
   }
 
   try {
-    res.locals.boards = [];
-    boardIds.forEach((boardId) => {
-      req.query.board_id = boardId;
+    let boardsData = {};
+    let boardsCount = 0;
+    let errorInRetrievingCount = 0;
 
-      getBoardById(req, res, async () => {
-        if (!res.locals.board) {
-          return res
-            .status(200)
-            .json({ success: true, data: res.locals.boards });
+    boardIds.forEach(async (boardId) => {
+      Boards.findById(boardId, (error, board) => {
+        // if board data not found
+        if (error || !board) {
+          errorInRetrievingCount += 1;
+          boardsCount += 1;
+
+          console.log(`${errorInRetrievingCount} errors in board`);
+
+          if (boardsCount === boardIds.length) {
+            let finalData = Object.keys(boardsData).map(
+              (board_id) => boardsData[board_id]
+            );
+
+            return res.status(200).json({ success: true, data: finalData });
+          }
         }
 
-        const { _id: id, lists, members, name } = res.locals.board;
-        const boardData = { id, lists, members, name };
-        req.query.userIds = boardData.members;
+        // board data found
+        else {
+          const { _id: id, stages, members, name } = board;
+          board = { id, stages, members, name };
+          boardsData[id] = board;
+          let memberIds = board.members;
+          let membersData = {};
+          let usersCount = 0;
 
-        usersController.getMultipleById(req, res, () => {
-          boardData.members = res.locals.usersData.map((user) => {
-            const { boards, ...rest } = user;
-            return rest;
+          memberIds.forEach(async (user_id) => {
+            Users.findById(user_id, (error, user) => {
+              usersCount += 1;
+              if (!error || user != null) {
+                let { _id: id, name } = user;
+                membersData[user_id] = { id, name };
+              }
+
+              if (usersCount === memberIds.length) {
+                boardsData[id].members = Object.keys(membersData).map(
+                  (user_id) => membersData[user_id]
+                );
+                boardsCount += 1;
+              }
+
+              if (boardsCount === boardIds.length) {
+                let finalData = Object.keys(boardsData).map(
+                  (board_id) => boardsData[board_id]
+                );
+
+                return res.status(200).json({ success: true, data: finalData });
+              }
+            });
           });
-
-          res.locals.boards.push(boardData);
-
-          if (res.locals.boards.length == boardIds.length) {
-            return res
-              .status(200)
-              .json({ success: true, data: res.locals.boards });
-          }
-        });
+        }
       });
     });
   } catch (e) {
@@ -94,6 +120,7 @@ async function deleteBoardById(req, res, next) {
       if (error) {
         return res.status(400).json({ success: false, error: error });
       } else {
+        console.log(`Deleted board with board_id ${board_id}`);
         res.locals.board = deletedDoard;
         res.locals.operationType = "DELETE";
         next();
@@ -104,31 +131,20 @@ async function deleteBoardById(req, res, next) {
   validateQuery(req, res, onSuccess);
 }
 
-function transformBoardData(board) {
-  const { _id: id, name, members, stages } = board;
-  return { id, name, members, stages };
-}
-
 async function createBoard(req, res, next) {
-  console.log("################################");
-  console.log("creating board...");
   Boards.create(res.locals.board, (error, createdBoard) => {
     if (error) {
       return res.status(400).json({ success: false, error: error });
     } else {
-      console.log("################################");
-      console.log("created board");
-      console.log("board data", createdBoard);
       res.locals.board = transformBoardData(createdBoard);
       res.locals.operationType = "ADD";
-      console.log("################################");
-      console.log("after transformBoardData");
-      console.log("res.locals", res.locals);
       next();
     }
   });
 }
 
+// updates (both insertion and deletion) the board members
+// corresponding to a board id
 async function updateMembers(req, res, next) {
   let { board_id, members } = req.body;
 

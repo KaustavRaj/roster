@@ -6,20 +6,24 @@ import {
   Switch,
 } from "react-router-dom";
 import axios from "axios";
-import { PropagateLoader } from "react-spinners";
 import { Boards, Login, Signup, Dashboard } from "./views";
-import { NotFoundPage, ProtectedRoute } from "./components";
-import withGlobalHeader from "./hoc/withGlobalHeader";
+import {
+  NotFoundPage,
+  ProtectedRoute,
+  LoadingScreen,
+  GlobalHeader,
+} from "./components";
 import Context from "./store/context";
 import "antd/dist/antd.css";
 
 function App() {
   const [pageLoading, setPageLoading] = useState(true);
   const { globalState, globalDispatch } = useContext(Context);
+  const TOKEN_VALIDATE_URL = "/api/login";
 
   useEffect(() => {
     const verifyExistingToken = async () => {
-      await axios.get("/login").then(
+      await axios.get(TOKEN_VALIDATE_URL).then(
         (response) => {
           const { success, data } = response.data;
           console.log("APP", response.data);
@@ -40,36 +44,33 @@ function App() {
   }, [globalDispatch, globalState.isAuthenticated]);
 
   return pageLoading ? (
-    <div
-      style={{
-        minWidth: "100hw",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <PropagateLoader color="#1890ff" size={30} />
-    </div>
+    <LoadingScreen />
   ) : (
     <Router>
       <Switch>
         <Route path="/" exact>
           <Redirect to="/boards" />
         </Route>
+
         <Route path="/login" exact>
-          {withGlobalHeader(<Login />)}
+          <GlobalHeader component={Login} />
         </Route>
+
         <Route path="/signup" exact>
-          {withGlobalHeader(<Signup />)}
+          <GlobalHeader component={Signup} />
         </Route>
-        <ProtectedRoute exact path="/boards" component={Boards} />
+
+        <ProtectedRoute path="/boards" component={Boards} exact />
+
         <ProtectedRoute
-          exact
           path="/:board_id/dashboard"
           component={Dashboard}
+          exact
         />
-        <Route path="*">{withGlobalHeader(<NotFoundPage />)}</Route>
+
+        <Route path="*">
+          <GlobalHeader component={NotFoundPage} />
+        </Route>
       </Switch>
     </Router>
   );

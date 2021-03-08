@@ -42,7 +42,7 @@ export default function Forms(props) {
 
   return (
     <div className="main">
-      <div className="box" bordered={false}>
+      <div className="box">
         <Form
           name="normal_login"
           className="login-form"

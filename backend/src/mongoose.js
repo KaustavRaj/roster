@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 const config = require("./config");
 
 const {
-  db: { host, port, name },
+  db: { host, port, name, atlas },
 } = config;
-const connectionURL = `mongodb://${host}:${port}/${name}`;
+const connectionURL = atlas || `mongodb://${host}:${port}/${name}`;
 
 mongoose.connect(connectionURL, {
   useNewUrlParser: true,

@@ -1,8 +1,15 @@
 import React, { useContext } from "react";
 import { Route, Redirect } from "react-router-dom";
 import Context from "../store/context";
-import withGlobalHeader from "../hoc/withGlobalHeader";
+import GlobalHeader from "./GlobalHeader";
 
+/**
+ *
+ * @param {*} component Route component
+ * @returns a wrapper around Route component which allows
+ * only an authorized user to access routes other than
+ * login/signup; otherwise redirects to /login
+ */
 function ProtectedRoute({ component: Component, ...rest }) {
   const { globalState } = useContext(Context);
 
@@ -13,7 +20,7 @@ function ProtectedRoute({ component: Component, ...rest }) {
       {...rest}
       render={(routeProps) => {
         return globalState.isAuthenticated ? (
-          withGlobalHeader(<Component {...routeProps} />)
+          <GlobalHeader component={Component} {...routeProps} />
         ) : (
           <Redirect
             to={{

@@ -6,6 +6,7 @@
 
 # production
 /client/build
+/heroku-deploy
 
 # misc
 .DS_Store

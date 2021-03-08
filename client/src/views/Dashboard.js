@@ -2,11 +2,10 @@ import React, { useState, useEffect, useContext } from "react";
 import { useParams } from "react-router-dom";
 import { Layout, Row, Col, Button, Space, message } from "antd";
 import { SyncOutlined, CheckCircleTwoTone } from "@ant-design/icons";
-import { PropagateLoader } from "react-spinners";
 import { DragDropContext } from "react-beautiful-dnd";
 import { useHistory } from "react-router-dom";
 import axios from "axios";
-import { TasksList, AddMembers } from "../components";
+import { TasksList, AddMembers, LoadingScreen } from "../components";
 import Context from "../store/context";
 import "./Boards.css";
 
@@ -14,7 +13,7 @@ const { Header, Content } = Layout;
 
 export default function Dashboard(props) {
   const { board_id } = useParams();
-  const BASE_URL = `/${board_id}/dashboard`;
+  const BASE_URL = `/api/${board_id}/dashboard`;
   const TASK_URL = `${BASE_URL}/task`;
 
   const [uploading, setUploading] = useState(false);
@@ -29,27 +28,30 @@ export default function Dashboard(props) {
 
   useEffect(() => {
     const getAllStages = async () => {
-      axios.get(BASE_URL).then(
-        (response) => {
-          const { success, error, data } = response.data;
-          if (success) {
-            const { stages, ...rest } = data;
-            console.log("--------------DASHBOARD DATA--------------");
-            console.log(data);
-            setDashboardData(rest);
-            setStages(stages);
-          } else {
-            history.push("/404");
-            console.error(error);
+      axios
+        .get(BASE_URL)
+        .then(
+          (response) => {
+            const { success, error, data } = response.data;
+            if (success) {
+              const { stages, ...rest } = data;
+              console.log("--------------DASHBOARD DATA--------------");
+              console.log(data);
+              setDashboardData(rest);
+              setStages(stages);
+            } else {
+              history.push("/404");
+              console.error(error);
+            }
+          },
+          (err) => {
+            history.push("/boards");
+            console.error(`GET /${board_id}/dashboard/`, err);
           }
-        },
-        (err) => {
-          history.push("/boards");
-          console.error(`GET /${board_id}/dashboard/`, err);
-        }
-      );
-
-      setPageLoading(false);
+        )
+        .finally(() => {
+          setPageLoading(false);
+        });
     };
 
     getAllStages();
@@ -360,22 +362,8 @@ export default function Dashboard(props) {
     });
   };
 
-  const pageLoadingScreen = (
-    <div
-      style={{
-        minWidth: "100hw",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <PropagateLoader color="#1890ff" size={30} />
-    </div>
-  );
-
   return pageLoading ? (
-    pageLoadingScreen
+    <LoadingScreen />
   ) : (
     <DragDropContext onDragEnd={onDragEnd}>
       <Layout

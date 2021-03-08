@@ -10,6 +10,8 @@ import LoadingScreen from "./LoadingScreen";
 import UserIcon from "./UserIcon";
 import NotFoundPage from "./NotFoundPage";
 import AddMembers from "./AddMembers";
+import Forms from "./Forms";
+import GlobalHeader from "./GlobalHeader";
 
 export {
   AppBar,
@@ -24,4 +26,6 @@ export {
   UserIcon,
   NotFoundPage,
   AddMembers,
+  Forms,
+  GlobalHeader,
 };

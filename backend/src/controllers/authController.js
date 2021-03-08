@@ -3,8 +3,8 @@ const config = require("../config");
 const accessTokenData = require("./common");
 
 /**
- * @summary verifies access token when directy accessing a page
- * @returns 401/403 header if failed, otherwise the user data
+ * verifies access token when directly accessing a page;
+ * returns 401 header if failed, otherwise the user data
  */
 function verifyAccessToken(req, res, next) {
   const { accessToken, refreshToken } = req.cookies;
@@ -26,7 +26,7 @@ function verifyAccessToken(req, res, next) {
       (err, decodedTokenData) => {
         if (err) {
           // unauthorized access, reject request
-          return res.status(403).json({ error: "unauthorized access denied" });
+          return res.status(401).json({ error: "unauthorized access denied" });
         } else {
           // user authorization successful, send the user info
           res.locals.decodedTokenData = decodedTokenData;
@@ -37,16 +37,15 @@ function verifyAccessToken(req, res, next) {
   }
 }
 
-/**
- * @returns a brand new access token, provided the refresh token is valid
- */
+// returns a brand new access token, provided the refresh token is valid
+
 function renewAccessToken(req, res, next) {
   const { refreshToken } = req.cookies;
 
   if (refreshToken == null) {
     // no refresh token provided, reject request
     return res
-      .status(401)
+      .status(400)
       .json({ success: false, error: "no refresh token found" });
   }
 
@@ -58,8 +57,7 @@ function renewAccessToken(req, res, next) {
         .json({ success: false, error: "invalid refresh token" });
     } else {
       // refresh token verified successfully, send a
-      // new access token containing only the info
-      // required (eg. remove "expiredIn" etc.)
+      // new access token
       const dataToEncrypt = accessTokenData(user);
       const newAccessToken = jwt.sign(
         dataToEncrypt,
@@ -68,16 +66,16 @@ function renewAccessToken(req, res, next) {
           expiresIn: config.token.expiry_in,
         }
       );
+
       // send new access token here
-      res.status(202).cookie("accessToken", newAccessToken);
+      res.status(200).cookie("accessToken", newAccessToken);
       next();
     }
   });
 }
 
-/**
- * @returns access token & refresh token, after signup
- */
+// returns access token & refresh token as cookies, after signup
+
 function getNewTokens(req, res, next) {
   const { user } = res.locals;
   const dataToEncrypt = { id: user._id };
